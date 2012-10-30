@@ -1,7 +1,7 @@
 var http = require("http");
 var url = require("url");
 
-function updateRotation(mac,currentRotation,response,connections)
+function checkPosition(mac,currentPosition,currentPlaceHash,response,connections)
 {    
     var options = {
         host: 'mapme.at',
@@ -19,20 +19,29 @@ function updateRotation(mac,currentRotation,response,connections)
 
         res.on('end', function(){
             console.log("Data from the server: "+pageData);
-            var rotationToDo = pageData-currentRotation;
-            if(rotationToDo == 0)
+            var result = pageData.split(',');
+            var livePosition = result[0];
+            var livePlaceHash = result[1];
+            if(livePosition == currentPosition && livePlaceHash == currentPlaceHash)
             {
                 console.log("No need for rotation, WhereDial will wait");
-                var connection = new Array();
-                connections[mac.toString()]=connection;
+                var connection = {};
+                var macConnections = connections[mac.toString()];
+                if (!macConnections) {
+                    console.log("Setting mac connections");
+                    macConnections = [];
+                    connections[mac.toString()] = macConnections;
+                }
+                macConnections.push(connection);
                 connection['response'] = response;
-                connection['currentRotation'] = currentRotation;
+                connection['currentPosition'] = currentPosition;
+                connection['currentPlaceHash'] = currentPlaceHash;
 
                 console.log("Number of WhereDials waiting:"+ Object.keys(connections).length);
             }else
             {
                 response.writeHead(200, {"Content-Type": "text/plain"});
-                response.write(rotationToDo.toString());
+                response.write(pageData);
                 response.end();
             }
         });
@@ -63,23 +72,32 @@ function getCurrentPosition(mac)
 	return 210;
 }
 
-function updatePosition(mac,position,response,connections)
+function updatePosition(mac,position,placeHash,response,connections)
 {
     //if there is an active connection for the mac address
-    if(typeof(connections[mac]) == 'object')
+    var macConnections = connections[mac];
+    if(macConnections)
     {
-        var rotationToDo = position-connections[mac]['currentRotation'];
         //response for the map.me.at API
         response.writeHead(200, {"Content-Type": "text/plain"});
         response.write("Done, WhereDial should now rotate to:" +position);
         response.end();
 
-        //closes the original request from the WhereDial
-        response = connections[mac]['response'];
-        response.write(rotationToDo.toString());
-        response.end();
-        //to clean the memory and update the number of active connections
-        delete connections[mac];
+        var updatedConnections = [];
+        for (var i in macConnections) {
+            var wheredialConnection = macConnections[i];
+            if (wheredialConnection['currentPosition'] != position || wheredialConnection['currentPlaceHash'] != placeHash) {
+                //closes the original request from the WhereDial
+                response = wheredialConnection['response'];
+                response.write(position.toString()+','+placeHash.toString());
+                response.end();
+                //to clean the memory and update the number of active connections
+            } else {
+            // Otherwise this is the location we had already, keep connection for later
+                updatedConnections.push(wheredialConnection);
+            }
+        }
+        connections[mac] = updatedConnections;
     }else
     {
         console.log("Trying to update the position of ["+mac+"] to "+position+ " but WhereDial is not connected");
@@ -89,5 +107,5 @@ function updatePosition(mac,position,response,connections)
     }
 }
 
-exports.updateRotation = updateRotation;
+exports.checkPosition = checkPosition;
 exports.updatePosition = updatePosition;

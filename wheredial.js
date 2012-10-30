@@ -1,57 +1,59 @@
 var http = require("http");
 var url = require("url");
-var rot = require("./rotation.js");
+var qs = require('querystring');
+var rot = require("./position.js");
 
 function start() 
 {
-  /*array to store all the active connections which are waiting (rotation to do != 0)
+  /*array to store all the active connections which are waiting (position to do != 0)
   connections
     └connection['mac']
-      └['currentRotation']  :current rotation of the WhereDial waiting 
+      └['currentRotation']  :current position of the WhereDial waiting 
+      └['currentPlaceHash'] :current place hash of the WhereDial waiting 
       └['response']         :response object used to send the data
 
   */
-  var connections = new Array();
+  var connections = {};
   
   function onRequest(request, response)
   {
     var postData = "";
-    var pathname = url.parse(request.url).pathname;
+    var parsedURL = url.parse(request.url,true);
 
     request.setEncoding("utf8");
 
     request.addListener("data", function(postDataChunk) {
       postData += postDataChunk;
+      if (postData.length > 1e6) {
+        // FLOOD ATTACK OR FAULTY CLIENT, NUKE REQUEST
+        request.connection.destroy();
+      }
     });
 
     request.addListener("end", function() {
-      if(postData == '')
       {
-        response.writeHead(200, {"Content-Type": "text/plain"});
-        response.write("No data sent");
-        response.end();
-
-        console.log("Number of WhereDials connected and waiting: "+Object.keys(connections).length)
-      }else
-      {
-        console.log("--------------"+pathname);
-        if(pathname=="/getRotation")
+        var POST = qs.parse(postData);
+        console.log("--------------"+parsedURL.pathname);
+        if(parsedURL.pathname=="/wheredial.csv")
         {
-          var mac = postData.split('=')[1].split('&')[0];
-          var rotation = postData.split('=')[2];
+          var mac = parsedURL.query.mac;
+          var position = parsedURL.query.position;
+          var placeHash = parsedURL.query.placeHash
           
           console.log("\n~WhereDial connected~");
           console.log("MAC-address:"+mac);
-          console.log("Current rotation:"+rotation);
+          console.log("Current position:"+position);
+          console.log("Current place hash:"+placeHash);
 
-          rot.updateRotation(mac,rotation,response,connections);
-        }else if(pathname = "/update")
+          rot.checkPosition(mac,position,placeHash,response,connections);
+        }else if(parsedURL.pathname = "/update")
         {
-          var mac = postData.split('=')[1].split('&')[0];
-          var position = postData.split('=')[2];
-          console.log("Position for mac address "+mac+" changed to "+ position)
+          var mac = POST.mac;
+          var position = POST.position;
+          var placeHash = POST.placeHash
+          console.log("Position for mac address "+mac+" changed to "+ position + " with hash "+placeHash);
 
-          rot.updatePosition(mac,position,response,connections);
+          rot.updatePosition(mac,position,placeHash,response,connections);
         }else
         {
           console.log("404 ERROR");
