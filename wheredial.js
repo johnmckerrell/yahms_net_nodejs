@@ -1,6 +1,7 @@
 var http = require("http");
 var url = require("url");
 var qs = require('querystring');
+var CONFIG = require('config').Config;
 var rot = require("./position.js");
 
 function start() 
@@ -46,7 +47,7 @@ function start()
           console.log("Current place hash:"+placeHash);
 
           rot.checkPosition(mac,position,placeHash,response,connections);
-        }else if(parsedURL.pathname = "/update")
+        }else if(parsedURL.pathname == "/update")
         {
           var mac = POST.mac;
           var position = POST.position;
@@ -66,8 +67,8 @@ function start()
 
   }
 
-  http.createServer(onRequest).listen(8888);
-  console.log("Server has started."); 
+  http.createServer(onRequest).listen(CONFIG.port,CONFIG.host);
+  console.log("Server has started "+CONFIG.host+":"+CONFIG.port); 
 }
 
 start();
