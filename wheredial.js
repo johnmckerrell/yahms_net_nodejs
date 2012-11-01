@@ -3,9 +3,12 @@ var url = require("url");
 var qs = require('querystring');
 var CONFIG = require('config').Config;
 var rot = require("./position.js");
+var beanstalk = require('beanstalk_client').Client;
 
 function start() 
 {
+  rot.setConfig(CONFIG);
+
   /*array to store all the active connections which are waiting (position to do != 0)
   connections
     └connection['mac']
@@ -37,7 +40,7 @@ function start()
         console.log("--------------"+parsedURL.pathname);
         if(parsedURL.pathname=="/wheredial.csv")
         {
-          var mac = parsedURL.query.mac;
+          var mac = parsedURL.query.mac.toLowerCase();
           var position = parsedURL.query.position;
           var placeHash = parsedURL.query.placeHash
           
@@ -49,7 +52,7 @@ function start()
           rot.checkPosition(mac,position,placeHash,response,connections);
         }else if(parsedURL.pathname == "/update")
         {
-          var mac = POST.mac;
+          var mac = POST.mac.toLowerCase();
           var position = POST.position;
           var placeHash = POST.placeHash
           console.log("Position for mac address "+mac+" changed to "+ position + " with hash "+placeHash);
@@ -67,8 +70,28 @@ function start()
 
   }
 
-  http.createServer(onRequest).listen(CONFIG.port,CONFIG.host);
-  console.log("Server has started "+CONFIG.host+":"+CONFIG.port); 
+  http.createServer(onRequest).listen(CONFIG.listenPort,CONFIG.listenHost);
+  console.log("Server has started "+CONFIG.listenHost+":"+CONFIG.listenPort); 
+
+  beanstalk.connect(CONFIG.beanstalk.host+':'+CONFIG.beanstalk.port, function(err, conn) {
+    conn.watch(CONFIG.beanstalk.tube,function() {
+      var reserve = function() {
+        conn.reserve(function(err, job_id, job_json) {
+          console.log('got job: ' + job_id);
+          console.log('got job data: ' + job_json);
+          rot.requestCurrentPosition(job_json,connections);
+          conn.destroy(job_id, function(err) {
+            console.log('destroyed job');
+            reserve();
+          });
+        });
+      }
+ 
+      reserve();
+    });
+
+  });
+  console.log("Beanstalk listening for "+CONFIG.beanstalk.tube+" from "+CONFIG.beanstalk.host+":"+CONFIG.beanstalk.port);
 }
 
 start();

@@ -1,5 +1,10 @@
 var http = require("http");
 var url = require("url");
+var CONFIG = null;
+
+function setConfig(conf) {
+    CONFIG = conf;
+}
 
 function checkPosition(mac,currentPosition,currentPlaceHash,response,connections)
 {    
@@ -28,13 +33,18 @@ function requestCurrentPosition(mac,connections)
 
 
     var options = {
-        host: 'mapme.at',
-        port: 80,
+        host: CONFIG.mapme_at.host,
+        port: CONFIG.mapme_at.port,
         path: '/api/wheredial.csv?mac='+mac,
         method: 'POST'
     };
     
     var req = http.get(options, function(res) {
+        if (res.statusCode != 200) {
+            console.log('Request gave bad response: '+res.statusCode);
+            req.end();
+            return;
+        }
         var pageData = "";
         res.setEncoding('utf8');
         res.on('data', function (chunk) {
@@ -91,6 +101,7 @@ function updatePosition(mac,position,placeHash,response,connections)
     }
 }
 
+exports.setConfig = setConfig;
 exports.checkPosition = checkPosition;
 exports.updatePosition = updatePosition;
 exports.requestCurrentPosition = requestCurrentPosition;
