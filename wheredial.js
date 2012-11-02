@@ -40,7 +40,10 @@ function start()
         console.log("--------------"+parsedURL.pathname);
         if(parsedURL.pathname=="/wheredial.csv")
         {
-          var mac = parsedURL.query.mac.toLowerCase();
+          var mac = parsedURL.query.mac
+          if (mac) {
+            mac = mac.toLowerCase();
+          }
           var position = parsedURL.query.position;
           var placeHash = parsedURL.query.placeHash
           
