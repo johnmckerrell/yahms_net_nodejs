@@ -81,7 +81,9 @@ function updatePosition(mac,position,placeHash,response,connections)
             if (wheredialConnection['currentPosition'] != position || wheredialConnection['currentPlaceHash'] != placeHash) {
                 //closes the original request from the WhereDial
                 response = wheredialConnection['response'];
-                response.write(position.toString()+','+placeHash.toString());
+                var responseBody = position.toString()+','+placeHash.toString();
+                response.setHeader('Content-Length',responseBody.length.toString());
+                response.write(responseBody);
                 response.end();
                 //to clean the memory and update the number of active connections
             } else {
