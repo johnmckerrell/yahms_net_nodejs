@@ -3,6 +3,7 @@ var url = require("url");
 var qs = require('querystring');
 var CONFIG = require('config').Config;
 var rot = require("./position.js");
+var demo = require("./demo.js");
 var beanstalk = require('beanstalk_client').Client;
 
 function start() 
@@ -79,6 +80,18 @@ function start()
               response.write("400 No MAC specified");
               response.end();
           }
+        }else if(parsedURL.pathname == "/demo.csv")
+        {
+          var position = parsedURL.query.position;
+          var placeHash = parsedURL.query.placeHash;
+          var jsonp = parsedURL.query.jsonp;
+          
+          console.log("\n~Demo WhereDial connected~");
+          console.log(new Date());
+          console.log("MAC-address:"+mac);
+          console.log("Current position:"+position);
+          console.log("Current place hash:"+placeHash);
+          demo.checkPosition('demo',position,placeHash,jsonp,response,connections);
         }else if(parsedURL.pathname == "/update")
         {
           var mac = POST.mac;
