@@ -18,13 +18,17 @@ function start()
 
   */
   var connections = {};
-  
+
   function onRequest(request, response)
   {
     var postData = "";
     var parsedURL = url.parse(request.url,true);
 
     request.setEncoding("utf8");
+    request.socket.setKeepAlive(true,10);
+    request.socket.setTimeout(0);
+    response.socket.setKeepAlive(true,10);
+    response.socket.setTimeout(0);
 
     request.addListener("data", function(postDataChunk) {
       postData += postDataChunk;
@@ -34,6 +38,20 @@ function start()
       }
     });
 
+    request.addListener("close", function() {
+        for (var mac in connections) {
+            var macConnections = connections[mac];
+            var updatedConnections = [];
+            for (var i = 0, l = macConnections.length; i < l; ++i) {
+                if (macConnections[i]['response'] == response) {
+                    console.log("Connection from "+mac+" closed. "+(new Date()));
+                } else {
+                    updatedConnections.push(macConnections[i]);
+                }
+            }
+            connections[mac] = updatedConnections;
+        }
+    });
     request.addListener("end", function() {
       {
         var POST = qs.parse(postData);
