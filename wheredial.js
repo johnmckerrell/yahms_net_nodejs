@@ -128,6 +128,23 @@ function start()
 
   });
   console.log("Beanstalk listening for "+CONFIG.beanstalk.tube+" from "+CONFIG.beanstalk.host+":"+CONFIG.beanstalk.port);
+
+  process.on( 'SIGUSR1', function() {
+    console.log("WhereDial.js Status:");
+    console.log("====================");
+    var anything = false;
+    for (var mac in connections) {
+      var macConnections = connections[mac];
+      if (macConnections && macConnections.length) {
+          anything = true;
+        console.log("  "+mac+": "+macConnections.length+" connection"+(macConnections.length==1?'':'s'));
+      }
+    }
+    if (!anything) {
+      console.log("  No connections");
+    }
+    console.log("");
+  });
 }
 
 start();

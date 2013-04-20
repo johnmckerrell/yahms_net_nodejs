@@ -79,6 +79,7 @@ function updatePosition(mac,position,placeHash,response,connections)
         for (var i in macConnections) {
             var wheredialConnection = macConnections[i];
             if (wheredialConnection['currentPosition'] != position || wheredialConnection['currentPlaceHash'] != placeHash) {
+                console.log("Updating one WhereDial ["+mac+"]");
                 //closes the original request from the WhereDial
                 response = wheredialConnection['response'];
                 var responseBody = position.toString()+','+placeHash.toString();
@@ -89,6 +90,7 @@ function updatePosition(mac,position,placeHash,response,connections)
             } else {
             // Otherwise this is the location we had already, keep connection for later
                 updatedConnections.push(wheredialConnection);
+                console.log("Keeping one WhereDial ["+mac+"] ("+wheredialConnection['currentPosition']+','+wheredialConnection['currentPlaceHash']+')');
             }
         }
         connections[mac] = updatedConnections;
