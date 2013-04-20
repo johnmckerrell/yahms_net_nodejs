@@ -173,7 +173,7 @@ function selectRandomPosition() {
 }
 
 selectRandomPosition();
-setInterval(selectRandomPosition,30000);
+setInterval(selectRandomPosition,60000);
 
 exports.checkPosition = checkPosition;
 exports.updatePosition = updatePosition;
