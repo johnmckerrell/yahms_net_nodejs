@@ -42,20 +42,31 @@ function start()
         {
           var mac = parsedURL.query.mac
           if (mac) {
-            mac = mac.toLowerCase();
+            mac = mac.toLowerCase().replace(/[^a-f0-9]/, '');
           }
           var position = parsedURL.query.position;
           var placeHash = parsedURL.query.placeHash
           
           console.log("\n~WhereDial connected~");
+          console.log(new Date());
           console.log("MAC-address:"+mac);
           console.log("Current position:"+position);
           console.log("Current place hash:"+placeHash);
 
-          rot.checkPosition(mac,position,placeHash,response,connections);
+          if (mac) {
+              rot.checkPosition(mac,position,placeHash,response,connections);
+          } else {
+              console.log("400 ERROR");
+              response.writeHead(400, {"Content-Type": "text/plain"});
+              response.write("400 No MAC specified");
+              response.end();
+          }
         }else if(parsedURL.pathname == "/update")
         {
-          var mac = POST.mac.toLowerCase();
+          var mac = POST.mac;
+          if (mac) {
+            mac = mac.toLowerCase().replace(/[^a-f0-9]/, '');
+          }
           var position = POST.position;
           var placeHash = POST.placeHash
           console.log("Position for mac address "+mac+" changed to "+ position + " with hash "+placeHash);
@@ -82,7 +93,11 @@ function start()
         conn.reserve(function(err, job_id, job_json) {
           console.log('got job: ' + job_id);
           console.log('got job data: ' + job_json);
-          rot.requestCurrentPosition(job_json,connections);
+          var mac = job_json.toLowerCase().replace(/[^a-f0-9]/, '');
+          var macConnections = connections[job_json];
+          if (macConnections && macConnections.length) {
+              rot.requestCurrentPosition(job_json,connections);
+          }
           conn.destroy(job_id, function(err) {
             console.log('destroyed job');
             reserve();
