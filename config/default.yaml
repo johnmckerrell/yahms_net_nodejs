@@ -1,0 +1,5 @@
+Config:
+    listenPort: 8889
+    yahms_net:
+        port: 3002
+        host: "localhost"

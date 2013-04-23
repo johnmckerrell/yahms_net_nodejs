@@ -1,0 +1,6 @@
+Config:
+    listenPort: 80
+    listenHost: 178.63.23.95
+    yahms_net:
+        port: 80
+        host: "api.yahms.net"
