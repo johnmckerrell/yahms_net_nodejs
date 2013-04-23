@@ -103,8 +103,10 @@ function start()
 
   }
 
-  http.createServer(onRequest).listen(CONFIG.listenPort,CONFIG.listenHost);
-  console.log("Server has started "+CONFIG.listenHost+":"+CONFIG.listenPort); 
+  var listenHost = process.env.OPENSHIFT_INTERNAL_IP || CONFIG.listenHost
+  var listenPort = process.env.OPENSHIFT_INTERNAL_PORT || CONFIG.listenPort;
+  http.createServer(onRequest).listen(listenPort,listenHost);
+  console.log("Server has started "+listenHost+":"+listenPort); 
 
   process.on( 'SIGUSR1', function() {
     console.log("YAHMS.js Status:");
