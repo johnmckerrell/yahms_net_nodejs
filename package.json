@@ -30,6 +30,6 @@
   "bundleDependencies": [],
 
   "private": true,
-  "main": "yahms.js"
+  "main": "yahms.js",
   "scripts": { "start": "node yahms.js" } }
 }
