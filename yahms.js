@@ -2,13 +2,11 @@ var http = require("http");
 var url = require("url");
 var qs = require('querystring');
 var CONFIG = require('config').Config;
-var rot = require("./position.js");
-var demo = require("./demo.js");
-var beanstalk = require('beanstalk_client').Client;
+var api = require("./api.js");
 
 function start() 
 {
-  rot.setConfig(CONFIG);
+  api.setConfig(CONFIG);
 
   /*array to store all the active connections which are waiting (position to do != 0)
   connections
@@ -55,54 +53,44 @@ function start()
     });
     request.addListener("end", function() {
       {
-        var POST = qs.parse(postData);
+        var pathParts = parsedURL.pathname.split('/');
         console.log("--------------"+parsedURL.pathname);
-        if(parsedURL.pathname=="/wheredial.csv")
+        console.log(pathParts);
+        if(pathParts[1]=="c")
         {
-          var mac = parsedURL.query.mac
+          var mac = pathParts[2]
           if (mac) {
             mac = mac.toLowerCase().replace(/[^a-f0-9]/, '');
           }
-          var position = parsedURL.query.position;
-          var placeHash = parsedURL.query.placeHash
+          var apiVersion = pathParts[3];
+          var lastUpdate = pathParts[4];
           
-          console.log("\n~WhereDial connected~");
+          console.log("\n~YAHMS Base Station connected~");
           console.log(new Date());
           console.log("MAC-address:"+mac);
-          console.log("Current position:"+position);
-          console.log("Current place hash:"+placeHash);
+          console.log("API Version:"+apiVersion);
+          console.log("Last Update:"+lastUpdate);
 
           if (mac) {
-              rot.checkPosition(mac,position,placeHash,response,connections);
+              api.checkLastUpdate(mac,lastUpdate,apiVersion,response,connections);
           } else {
               console.log("400 ERROR");
               response.writeHead(400, {"Content-Type": "text/plain"});
               response.write("400 No MAC specified");
               response.end();
           }
-        }else if(parsedURL.pathname == "/demo.csv")
+        }else if(pathParts[1] == "u")
         {
-          var position = parsedURL.query.position;
-          var placeHash = parsedURL.query.placeHash;
-          var jsonp = parsedURL.query.jsonp;
-          
-          console.log("\n~Demo WhereDial connected~");
-          console.log(new Date());
-          console.log("MAC-address:"+mac);
-          console.log("Current position:"+position);
-          console.log("Current place hash:"+placeHash);
-          demo.checkPosition('demo',position,placeHash,jsonp,response,connections);
-        }else if(parsedURL.pathname == "/update")
-        {
-          var mac = POST.mac;
+          var mac = pathParts[2];
           if (mac) {
             mac = mac.toLowerCase().replace(/[^a-f0-9]/, '');
           }
-          var position = POST.position;
-          var placeHash = POST.placeHash
-          console.log("Position for mac address "+mac+" changed to "+ position + " with hash "+placeHash);
+          console.log("Position for mac address changed");
 
-          rot.updatePosition(mac,position,placeHash,response,connections);
+          api.requestCurrentConfig(1,0,mac,connections);
+
+          response.writeHead(204);
+          response.end();
         }else
         {
           console.log("404 ERROR");
@@ -118,33 +106,9 @@ function start()
   http.createServer(onRequest).listen(CONFIG.listenPort,CONFIG.listenHost);
   console.log("Server has started "+CONFIG.listenHost+":"+CONFIG.listenPort); 
 
-  beanstalk.connect(CONFIG.beanstalk.host+':'+CONFIG.beanstalk.port, function(err, conn) {
-    conn.watch(CONFIG.beanstalk.tube,function() {
-      var reserve = function() {
-        conn.reserve(function(err, job_id, job_json) {
-          console.log('got job: ' + job_id);
-          console.log('got job data: ' + job_json);
-          var mac = job_json.toLowerCase().replace(/[^a-f0-9]/, '');
-          var macConnections = connections[job_json];
-          if (macConnections && macConnections.length) {
-              rot.requestCurrentPosition(job_json,connections);
-          }
-          conn.destroy(job_id, function(err) {
-            console.log('destroyed job');
-            reserve();
-          });
-        });
-      }
- 
-      reserve();
-    });
-
-  });
-  console.log("Beanstalk listening for "+CONFIG.beanstalk.tube+" from "+CONFIG.beanstalk.host+":"+CONFIG.beanstalk.port);
-
   process.on( 'SIGUSR1', function() {
-    console.log("WhereDial.js Status:");
-    console.log("====================");
+    console.log("YAHMS.js Status:");
+    console.log("================");
     var anything = false;
     for (var mac in connections) {
       var macConnections = connections[mac];

@@ -1,10 +1,6 @@
 Config:
     listenPort: 80
     listenHost: 178.63.23.95
-    beanstalk:
-        port: 11300
-        host: "localhost"
-        tube: "wheredial"
-    mapme_at:
+    yahms_net:
         port: 80
-        host: "mapme.at"
+        host: "api.yahms.net"

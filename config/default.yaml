@@ -1,9 +1,5 @@
 Config:
-    listenPort: 8888
-    beanstalk:
-        port: 11300
-        host: "localhost"
-        tube: "wheredial"
-    mapme_at:
-        port: 3000
+    listenPort: 8889
+    yahms_net:
+        port: 3002
         host: "localhost"
