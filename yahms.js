@@ -56,14 +56,14 @@ function start()
         var pathParts = parsedURL.pathname.split('/');
         console.log("--------------"+parsedURL.pathname);
         console.log(pathParts);
-        if(pathParts[1]=="c")
+        if(pathParts[2]=="c")
         {
-          var mac = pathParts[2]
+          var mac = pathParts[3]
           if (mac) {
             mac = mac.toLowerCase().replace(/[^a-f0-9]/, '');
           }
-          var apiVersion = pathParts[3];
-          var lastUpdate = pathParts[4];
+          var apiVersion = pathParts[4];
+          var lastUpdate = pathParts[5];
           
           console.log("\n~YAHMS Base Station connected~");
           console.log(new Date());
@@ -79,9 +79,9 @@ function start()
               response.write("400 No MAC specified");
               response.end();
           }
-        }else if(pathParts[1] == "u")
+        }else if(pathParts[2] == "u")
         {
-          var mac = pathParts[2];
+          var mac = pathParts[3];
           if (mac) {
             mac = mac.toLowerCase().replace(/[^a-f0-9]/, '');
           }
@@ -91,6 +91,36 @@ function start()
 
           response.writeHead(204);
           response.end();
+        }else if(pathParts[2] == "s")
+        {
+          var options = {
+              host: CONFIG.yahms_net.host,
+              port: CONFIG.yahms_net.port,
+              path: parsedURL.pathname,
+              method: 'GET'
+          };
+          var req = http.get(options, function(res) {
+            if (res.statusCode == 304) {
+                console.log('Config has not changed.');
+                req.end();
+                return;
+            } else if (res.statusCode != 200) {
+                console.log('Request gave bad response: '+res.statusCode);
+                req.end();
+                return;
+            }
+            var pageData = "";
+            res.setEncoding('utf8');
+            res.on('data', function (chunk) {
+                pageData += chunk;
+            });
+
+            res.on('end', function(){
+              response.writeHead(res.statusCode);
+              response.write(pageData);
+              response.end();
+            });
+          });
         }else
         {
           console.log("404 ERROR");
